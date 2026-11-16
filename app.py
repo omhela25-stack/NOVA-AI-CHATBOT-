@@ -347,5 +347,5 @@ if prompt:
                 if voice_enabled:
                     speak_text(answer)
 
-                except Exception as e:
+            except Exception as e:
                     st.error(f"AI connection error: {e}")
