@@ -283,25 +283,26 @@ if not st.session_state.messages:
         st.caption("Write, debug and understand code.")
 
 
+
 # ---------------- CHAT HISTORY ----------------
 
-st.session_state.messages.append({
-    "role": "assistant",
-    "content": answer
-})
-if st.session_state.messages:
-    last_answer = next(
-        (
-            m["content"]
-            for m in reversed(st.session_state.messages)
-            if m["role"] == "assistant"
-        ),
-        None
-    )
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-    if last_answer:
-        if st.button("🔊 Replay Last Response"):
-            speak_text(last_answer)
+# Replay last AI response
+last_answer = next(
+    (
+        message["content"]
+        for message in reversed(st.session_state.messages)
+        if message["role"] == "assistant"
+    ),
+    None
+)
+
+if last_answer:
+    if st.button("🔊 Replay Last Response"):
+        speak_text(last_answer)
 
 
 # ---------------- USER INPUT ----------------
