@@ -305,47 +305,76 @@ if last_answer:
         speak_text(last_answer)
 
 
+
+
 # ---------------- USER INPUT ----------------
 
 prompt = st.chat_input("Message NOVA AI...")
 
 if prompt:
+
+    # Save user message
     st.session_state.messages.append({
         "role": "user",
         "content": prompt
     })
 
+    # Display user message
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Automatically select AI model
     selected_model = select_model(prompt)
 
+    # Generate AI response
     with st.chat_message("assistant"):
+
         with st.spinner("✦ NOVA is thinking..."):
+
             try:
+
+                # Prepare clean conversation history
                 ai_messages = [
                     {
                         "role": "system",
-                        "content": "You are NOVA, a helpful and intelligent AI assistant. Give clear and accurate answers."
+                        "content": (
+                            "You are NOVA, a helpful and intelligent "
+                            "AI assistant. Give clear and accurate answers."
+                        )
                     }
-                ] + st.session_state.messages
+                ]
 
+                # Only send role and content to Groq
+                for message in st.session_state.messages:
+                    ai_messages.append({
+                        "role": message["role"],
+                        "content": message["content"]
+                    })
+
+                # Get response from Groq
                 answer = get_ai_response(
                     ai_messages,
                     selected_model
                 )
 
+                # Display AI response
                 st.markdown(answer)
+
                 st.caption("✦ Powered by " + selected_model)
 
+                # Save clean assistant message
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": answer,
-                    "model": selected_model
+                    "content": answer
                 })
 
+                # Speak AI response if voice is enabled
                 if voice_enabled:
                     speak_text(answer)
 
             except Exception as e:
-                    st.error(f"AI connection error: {e}")
+
+                st.error(
+                    f"AI connection error: {e}"
+                )
+
