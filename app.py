@@ -1,5 +1,5 @@
 import streamlit as st
-import requests
+from groq import Groq
 import streamlit.components.v1 as components
 import json
 
@@ -49,13 +49,14 @@ st.set_page_config(
     layout="wide"
 )
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-
 MODELS = {
-    "general": "llama3.2:3b",
-    "coding": "qwen2.5-coder:1.5b"
+    "general": "llama-3.3-70b-versatile",
+    "coding": "qwen/qwen3-32b"
 }
 
+client = Groq(
+    api_key=st.secrets["GROQ_API_KEY"]
+)
 # ---------------- CUSTOM UI ----------------
 
 st.markdown("""
@@ -201,19 +202,17 @@ def select_model(prompt):
 
 # ---------------- OLLAMA CONNECTION ----------------
 
+
 def get_ai_response(messages, model):
-    response = requests.post(
-        OLLAMA_URL,
-        json={
-            "model": model,
-            "messages": messages,
-            "stream": False
-        },
-        timeout=180
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=0.7,
+        max_completion_tokens=2048
     )
 
-    response.raise_for_status()
-    return response.json()["message"]["content"]
+    return response.choices[0].message.content
 
 
 # ---------------- SIDEBAR ----------------
@@ -348,5 +347,5 @@ if prompt:
                 if voice_enabled:
                     speak_text(answer)
 
-            except requests.exceptions.RequestException as e:
-                st.error(f"Ollama connection error: {e}")
+                except Exception as e:
+                    st.error(f"AI connection error: {e}")
