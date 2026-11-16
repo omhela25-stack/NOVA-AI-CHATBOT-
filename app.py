@@ -49,10 +49,12 @@ st.set_page_config(
     layout="wide"
 )
 
+
 MODELS = {
-    "general": "llama-3.3-70b-versatile",
-    "coding": "qwen/qwen3-32b"
+    "general": "openai/gpt-oss-120b",
+    "coding": "qwen/qwen3.8-27b"
 }
+
 
 client = Groq(
     api_key=st.secrets["GROQ_API_KEY"]
