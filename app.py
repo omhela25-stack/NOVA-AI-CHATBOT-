@@ -434,7 +434,6 @@ if prompt:
                 
 # ---------------- GROQ AI RESPONSE ----------------
 
-from groq import Groq
 
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
