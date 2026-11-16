@@ -474,7 +474,7 @@ if prompt:
 
         return response.choices[0].message.content
 
-    except Exception as e:
+  except Exception as e:
         return f"NOVA encountered an error: {str(e)}"
 
 
