@@ -295,15 +295,14 @@ if len(st.session_state.messages) == 0:
         background:linear-gradient(135deg,#111827,#312e81);
         margin-bottom:20px;
     ">
-        <h1 style="color:white;">Welcome, Om! 👋</h1>
+        <h1 style="color:white;">Welcome! 👋</h1>
         <p style="color:#cbd5e1;">
             Your personal AI assistant is ready.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("🔊 Play Welcome"):
-        welcome_om()
+    
 # ---------------- CHAT HISTORY ----------------
 
 for message in st.session_state.messages:
