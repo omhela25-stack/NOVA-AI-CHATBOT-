@@ -435,45 +435,17 @@ if prompt:
 # ---------------- GROQ AI RESPONSE ----------------
 
 
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-
-MODELS = {
-    "general": "openai/gpt-oss-120b",
-    "coding": "qwen/qwen3.8-27b"
-}
-
-
-def get_ai_response(messages, model):
-    user_name = st.session_state.get("user_name", "there")
-
-    system_message = {
-        "role": "system",
-        "content": (
-            f"You are NOVA, a helpful and intelligent AI assistant. "
-            f"The user's name is {user_name}. "
-            "Address the user by their name naturally when appropriate. "
-            "Give clear, accurate and useful answers."
-        )
-    }
-
-    clean_messages = [
-        {
-            "role": message["role"],
-            "content": message["content"]
-        }
-        for message in messages
-        if message.get("role") in ["user", "assistant"]
-        and isinstance(message.get("content"), str)
+def select_model(prompt):
+    coding_keywords = [
+        "python", "code", "programming", "debug",
+        "error", "html", "css", "javascript",
+        "function", "developer"
     ]
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=[system_message] + clean_messages,
-        temperature=0.7,
-        max_completion_tokens=2048
-    )
+    if any(word in prompt.lower() for word in coding_keywords):
+        return MODELS["coding"]
 
-    return response.choices[0].message.content
+    return MODELS["general"]
 
         # Keep only valid Groq message fields
         clean_messages = [
