@@ -1,95 +1,126 @@
-import json
-import streamlit as st
-import streamlit.components.v1 as components
-from groq import Groq
-
-
-# ---------------- PAGE CONFIGURATION ----------------
-
-st.set_page_config(
-    page_title="NOVA AI",
-    page_icon="✦",
-    layout="wide"
-)
-
-
-# ---------------- SESSION STATE ----------------
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "user_name" not in st.session_state:
-    st.session_state.user_name = ""
-
-if "welcome_played" not in st.session_state:
-    st.session_state.welcome_played = False
-
-
-# ---------------- GROQ CONFIGURATION ----------------
-
-MODELS = {
-    "general": "openai/gpt-oss-120b",
-    "coding": "qwen/qwen3.8-27b"
-}
-
-# The key must be stored in Streamlit Cloud > App settings > Secrets:
-# GROQ_API_KEY = "your_key"
-try:
-    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-except Exception as exc:
-    st.error(
-        "NOVA cannot find GROQ_API_KEY. Add it to your Streamlit Secrets "
-        "and restart the app."
+        "Browsers may block sound until you interact with the page."
     )
     st.stop()
 
 
-# ---------------- VOICE OUTPUT ----------------
+# ---------------- SIDEBAR ----------------
 
-def speak_text(text):
-    """Speak text in the visitor's browser using its built-in speech engine."""
-    safe_text = json.dumps(str(text))
+with st.sidebar:
+    st.markdown("## ✦ NOVA AI")
+    st.caption("YOUR PERSONAL AI SPACE")
+    st.markdown(f"### Welcome, {user_name} 👋")
+    st.caption("Built by Om Hela")
 
-    voice_html = f"""
-    <script>
-    const textToSpeak = {safe_text};
+    st.divider()
 
-    function speakNOVA() {{
-        if (!("speechSynthesis" in window)) return;
+    st.markdown("### 🧠 AI Models")
+    st.success("GPT-OSS 120B · General AI")
+    st.info("Qwen 3 · Coding AI")
 
-        window.speechSynthesis.cancel();
+    st.divider()
 
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.lang = "en-US";
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
+    if st.button("＋ New Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
 
-        const voices = window.speechSynthesis.getVoices();
-        const preferred = voices.find(v => v.lang === "en-US");
-        if (preferred) utterance.voice = preferred;
+    st.divider()
 
-        window.speechSynthesis.speak(utterance);
-    }}
+    st.markdown("### 🔊 Voice Settings")
+    voice_enabled = st.toggle(
+        "Speak AI responses",
+        value=True
+    )
+    st.caption("Automatic voice output")
 
-    speakNOVA();
-    </script>
-    """
+    st.markdown("### ⚙️ System")
+    st.caption("Engine: Groq")
+    st.caption("Connection: Cloud API")
+    st.caption("Mode: Automatic selection")
 
-    components.html(voice_html, height=0)
+    st.divider()
+    st.caption("NOVA AI · Crafted by Om Hela")
 
 
-# ---------------- AI MODEL SELECTION ----------------
+# ---------------- MAIN INTERFACE ----------------
 
-def select_model(prompt):
-    coding_keywords = [
-        "python", "code", "coding", "program", "debug",
-        "error", "bug", "function", "javascript", "html",
-        "css", "sql", "algorithm", "streamlit", "api"
-    ]
+st.markdown("""
+<div class="hero">
+    <h1>✦ NOVA AI</h1>
+    <p>Your intelligent workspace. Ask anything, create anything.</p>
+</div>
+""", unsafe_allow_html=True)
 
-    if any(word in prompt.lower() for word in coding_keywords):
-        return MODELS["coding"]
+if not st.session_state.messages:
+    st.markdown("### What can I help you with today?")
 
-    return MODELS["general"]
+    col1, col2 = st.columns(2)
 
+    with col1:
+        st.markdown("💡 **Learn something**")
+        st.caption("Understand AI, science and technology.")
+
+    with col2:
+        st.markdown("💻 **Build something**")
+        st.caption("Write, debug and understand code.")
+
+
+# ---------------- CHAT HISTORY ----------------
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+        if message["role"] == "assistant" and message.get("model"):
+            st.caption("✦ " + message["model"])
+
+if st.session_state.messages:
+    last_answer = next(
+        (
+            message["content"]
+            for message in reversed(st.session_state.messages)
+            if message["role"] == "assistant"
+        ),
+        None
+    )
+
+    if last_answer and st.button("🔊 Replay Last Response"):
+        speak_text(last_answer)
+
+
+# ---------------- USER INPUT ----------------
+
+prompt = st.chat_input(f"Message NOVA, {user_name}...")
+
+if prompt:
+    st.session_state.messages.append({
+        "role": "user",
+        "content": prompt
+    })
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    selected_model = select_model(prompt)
+
+    with st.chat_message("assistant"):
+        with st.spinner("✦ NOVA is thinking..."):
+            try:
+                answer = get_ai_response(
+                    st.session_state.messages,
+                    selected_model
+                )
+
+                st.markdown(answer)
+                st.caption("✦ Powered by " + selected_model)
+
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": answer,
+                    "model": selected_model
+                })
+
+                if voice_enabled:
+                    speak_text(answer)
+
+            except Exception as exc:
+                st.error(f"Groq AI connection error: {exc}")
