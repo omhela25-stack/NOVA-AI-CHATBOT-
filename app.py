@@ -201,7 +201,7 @@ def select_model(prompt):
 
     return MODELS["general"]
 
-
+prompt = st.chat_input(f"Message NOVA, {st.session_state.user_name}...")
 # ---------------- OLLAMA CONNECTION ----------------
 
 
@@ -285,9 +285,63 @@ if not st.session_state.messages:
 
 # ---------------- WELCOME SCREEN ----------------
 
-if len(st.session_state.messages) == 0:
+
+# ---------------- USER ENTRY & PERSONAL WELCOME ----------------
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if "user_name" not in st.session_state:
+    st.session_state.user_name = ""
+
+if "welcome_played" not in st.session_state:
+    st.session_state.welcome_played = False
+
+
+# Ask for the user's name before entering NOVA
+if not st.session_state.user_name:
 
     st.markdown("""
+    <div style="text-align:center; padding:45px 15px;">
+        <h1 style="color:white;">Welcome to NOVA AI ✨</h1>
+        <p style="color:#cbd5e1;">
+            Your personal AI assistant is waiting for you.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("user_entry_form"):
+        entered_name = st.text_input(
+            "What should NOVA call you?",
+            placeholder="Enter your name..."
+        )
+
+        enter_button = st.form_submit_button(
+            "Enter NOVA AI 🚀",
+            use_container_width=True
+        )
+
+        if enter_button:
+            if entered_name.strip():
+                st.session_state.user_name = entered_name.strip()
+                st.rerun()
+            else:
+                st.warning("Please enter your name.")
+
+    st.stop()
+
+
+# Personalized welcome after entering
+user_name = st.session_state.user_name
+
+welcome_text = (
+    f"Welcome to NOVA AI, {user_name}! "
+    "I'm your personal AI assistant. "
+    "How can I help you today?"
+)
+
+if not st.session_state.welcome_played:
+    st.markdown(f"""
     <div style="
         text-align:center;
         padding:35px 15px;
@@ -295,12 +349,18 @@ if len(st.session_state.messages) == 0:
         background:linear-gradient(135deg,#111827,#312e81);
         margin-bottom:20px;
     ">
-        <h1 style="color:white;">Welcome! 👋</h1>
+        <h1 style="color:white;">Welcome, {user_name}! 👋</h1>
         <p style="color:#cbd5e1;">
-            Your personal AI assistant is ready.
+            I'm NOVA. Your personal AI assistant is ready.
         </p>
     </div>
     """, unsafe_allow_html=True)
+
+    if st.button("🔊 Hear Your Welcome", use_container_width=True):
+        speak_text(welcome_text)
+        st.session_state.welcome_played = True
+        st.rerun()
+
 
     
 # ---------------- CHAT HISTORY ----------------
@@ -371,10 +431,58 @@ if prompt:
                     })
 
                 # Get response from Groq
-                answer = get_ai_response(
-                    ai_messages,
-                    selected_model
-                )
+                
+# ---------------- GROQ AI RESPONSE ----------------
+
+from groq import Groq
+
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+
+MODELS = {
+    "general": "openai/gpt-oss-120b",
+    "coding": "qwen/qwen3.8-27b"
+}
+
+
+def get_ai_response(messages, model):
+    try:
+        user_name = st.session_state.get("user_name", "there")
+
+        system_message = {
+            "role": "system",
+            "content": (
+                f"You are NOVA, a helpful, intelligent and friendly AI assistant. "
+                f"The user's name is {user_name}. "
+                "Address the user by their name naturally when appropriate. "
+                "Give accurate, clear and useful answers. "
+                "For coding questions, explain solutions step by step. "
+                "Never claim something has been done unless it actually has."
+            )
+        }
+
+        # Keep only valid Groq message fields
+        clean_messages = [
+            {
+                "role": message["role"],
+                "content": message["content"]
+            }
+            for message in messages
+            if message.get("role") in ["user", "assistant"]
+            and isinstance(message.get("content"), str)
+        ]
+
+        response = client.chat.completions.create(
+            model=model,
+            messages=[system_message] + clean_messages,
+            temperature=0.7,
+            max_completion_tokens=2048
+        )
+
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"NOVA encountered an error: {str(e)}"
+
 
                 # Display AI response
                 st.markdown(answer)
