@@ -1,6 +1,4 @@
-import json
 import streamlit as st
-import streamlit.components.v1 as components
 from groq import Groq
 
 
@@ -41,44 +39,6 @@ except Exception:
     )
     st.stop()
 
-
-# ---------------- VOICE OUTPUT ----------------
-
-def speak_text(text):
-    safe_text = json.dumps(str(text))
-
-    voice_html = f"""
-    <script>
-    const textToSpeak = {safe_text};
-
-    function speakNOVA() {{
-        if (!("speechSynthesis" in window)) return;
-
-        window.speechSynthesis.cancel();
-
-        const speech = new SpeechSynthesisUtterance(textToSpeak);
-        speech.lang = "en-US";
-        speech.rate = 1.0;
-        speech.pitch = 1.0;
-        speech.volume = 1.0;
-
-        const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(
-            voice => voice.lang === "en-US"
-        );
-
-        if (preferredVoice) {{
-            speech.voice = preferredVoice;
-        }}
-
-        window.speechSynthesis.speak(speech);
-    }}
-
-    speakNOVA();
-    </script>
-    """
-
-    components.html(voice_html, height=0)
 
 
 # ---------------- MODEL SELECTION ----------------
@@ -311,15 +271,11 @@ if not st.session_state.welcome_played:
         "I'm your personal AI assistant. How can I help you today?"
     )
 
-    if st.button("🔊 Hear Your Welcome", use_container_width=True):
-        speak_text(welcome_text)
+    if st.button("Continue to NOVA AI", use_container_width=True):
         st.session_state.welcome_played = True
         st.rerun()
 
-    st.caption(
-        "Click the button to hear NOVA welcome you. "
-        "Browsers may block sound until you interact with the page."
-    )
+    # Keep the visitor on the welcome screen until they continue.
     st.stop()
 
 
@@ -343,14 +299,10 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-    st.divider()
-
-    st.markdown("### 🔊 Voice Settings")
-    voice_enabled = st.toggle(
-        "Speak AI responses",
-        value=True
-    )
-    st.caption("Automatic voice output")
+    if st.button("✎ Change Name", use_container_width=True):
+        st.session_state.user_name = ""
+        st.session_state.welcome_played = False
+        st.rerun()
 
     st.markdown("### ⚙️ System")
     st.caption("Engine: Groq")
@@ -393,20 +345,6 @@ for message in st.session_state.messages:
         if message["role"] == "assistant" and message.get("model"):
             st.caption("✦ " + message["model"])
 
-if st.session_state.messages:
-    last_answer = next(
-        (
-            message["content"]
-            for message in reversed(st.session_state.messages)
-            if message["role"] == "assistant"
-        ),
-        None
-    )
-
-    if last_answer and st.button("🔊 Replay Last Response"):
-        speak_text(last_answer)
-
-
 # ---------------- USER INPUT ----------------
 
 prompt = st.chat_input(f"Message NOVA, {user_name}...")
@@ -439,8 +377,6 @@ if prompt:
                     "model": selected_model
                 })
 
-                if voice_enabled:
-                    speak_text(answer)
 
             except Exception as exc:
                 st.error(f"Groq AI connection error: {exc}")
