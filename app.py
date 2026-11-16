@@ -7,7 +7,7 @@ from groq import Groq
 # ---------------- PAGE CONFIGURATION ----------------
 
 st.set_page_config(
-    page_title="NOVA AI",
+    page_title="I LOVE YOU BABY AI",
     page_icon="✦",
     layout="wide"
 )
