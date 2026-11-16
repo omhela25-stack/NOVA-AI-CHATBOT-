@@ -285,13 +285,10 @@ if not st.session_state.messages:
 
 # ---------------- CHAT HISTORY ----------------
 
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-        if message["role"] == "assistant" and message.get("model"):
-            st.caption("✦ " + message["model"])
-
+st.session_state.messages.append({
+    "role": "assistant",
+    "content": answer
+})
 if st.session_state.messages:
     last_answer = next(
         (
