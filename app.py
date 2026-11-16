@@ -1,4 +1,6 @@
+import json
 import streamlit as st
+import streamlit.components.v1 as components
 from groq import Groq
 
 
@@ -9,6 +11,46 @@ st.set_page_config(
     page_icon="✦",
     layout="wide"
 )
+
+
+# ---------------- BROWSER SPEECH ----------------
+
+def speak_text(text):
+    """Read an AI response aloud using the visitor's browser voice."""
+    safe_text = json.dumps(str(text))
+
+    voice_html = f"""
+    <script>
+    const textToSpeak = {safe_text};
+
+    function speakNOVA() {{
+        if (!("speechSynthesis" in window)) return;
+
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = "en-US";
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(
+            voice => voice.lang === "en-US"
+        );
+
+        if (preferredVoice) {{
+            utterance.voice = preferredVoice;
+        }}
+
+        window.speechSynthesis.speak(utterance);
+    }}
+
+    speakNOVA();
+    </script>
+    """
+
+    components.html(voice_html, height=0)
 
 
 # ---------------- SESSION STATE ----------------
@@ -27,7 +69,7 @@ if "welcome_played" not in st.session_state:
 
 MODELS = {
     "general": "openai/gpt-oss-120b",
-    "coding": "qwen/qwen3-32b"
+    "coding": "qwen/qwen3.8-27b"
 }
 
 try:
@@ -338,12 +380,19 @@ if not st.session_state.messages:
 
 # ---------------- CHAT HISTORY ----------------
 
-for message in st.session_state.messages:
+for message_index, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-        if message["role"] == "assistant" and message.get("model"):
-            st.caption("✦ " + message["model"])
+        if message["role"] == "assistant":
+            if message.get("model"):
+                st.caption("✦ " + message["model"])
+
+            if st.button(
+                "🔊 Listen to this response",
+                key=f"speak_message_{message_index}"
+            ):
+                speak_text(message["content"])
 
 # ---------------- USER INPUT ----------------
 
@@ -377,6 +426,11 @@ if prompt:
                     "model": selected_model
                 })
 
+                if st.button(
+                    "🔊 Listen to NOVA",
+                    key=f"speak_new_answer_{len(st.session_state.messages)}"
+                ):
+                    speak_text(answer)
 
             except Exception as exc:
                 st.error(f"Groq AI connection error: {exc}")
