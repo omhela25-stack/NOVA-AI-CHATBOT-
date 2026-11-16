@@ -445,20 +445,36 @@ MODELS = {
 
 
 def get_ai_response(messages, model):
-    try:
-        user_name = st.session_state.get("user_name", "there")
+    user_name = st.session_state.get("user_name", "there")
 
-        system_message = {
-            "role": "system",
-            "content": (
-                f"You are NOVA, a helpful, intelligent and friendly AI assistant. "
-                f"The user's name is {user_name}. "
-                "Address the user by their name naturally when appropriate. "
-                "Give accurate, clear and useful answers. "
-                "For coding questions, explain solutions step by step. "
-                "Never claim something has been done unless it actually has."
-            )
+    system_message = {
+        "role": "system",
+        "content": (
+            f"You are NOVA, a helpful and intelligent AI assistant. "
+            f"The user's name is {user_name}. "
+            "Address the user by their name naturally when appropriate. "
+            "Give clear, accurate and useful answers."
+        )
+    }
+
+    clean_messages = [
+        {
+            "role": message["role"],
+            "content": message["content"]
         }
+        for message in messages
+        if message.get("role") in ["user", "assistant"]
+        and isinstance(message.get("content"), str)
+    ]
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[system_message] + clean_messages,
+        temperature=0.7,
+        max_completion_tokens=2048
+    )
+
+    return response.choices[0].message.content
 
         # Keep only valid Groq message fields
         clean_messages = [
