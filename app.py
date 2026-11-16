@@ -410,42 +410,49 @@ if prompt:
 
         with st.spinner("✦ NOVA is thinking..."):
 
+     
             try:
-
                 # Prepare clean conversation history
+                user_name = st.session_state.get("user_name", "there")
+
                 ai_messages = [
                     {
                         "role": "system",
                         "content": (
-                            "You are NOVA, a helpful and intelligent "
-                            "AI assistant. Give clear and accurate answers."
+                            f"You are NOVA, a helpful and intelligent AI assistant. "
+                            f"The user's name is {user_name}. "
+                            "Address the user by their name naturally when appropriate. "
+                            "Give clear and accurate answers."
                         )
                     }
                 ]
 
                 # Only send role and content to Groq
                 for message in st.session_state.messages:
-                    ai_messages.append({
-                        "role": message["role"],
-                        "content": message["content"]
-                    })
+                    if message.get("role") in ["user", "assistant"]:
+                        ai_messages.append({
+                            "role": message["role"],
+                            "content": message["content"]
+                        })
 
                 # Get response from Groq
-                
-# ---------------- GROQ AI RESPONSE ----------------
+                answer = get_ai_response(ai_messages, selected_model)
 
+                st.markdown(answer)
 
-def select_model(prompt):
-    coding_keywords = [
-        "python", "code", "programming", "debug",
-        "error", "html", "css", "javascript",
-        "function", "developer"
-    ]
+                # Save assistant response
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": answer
+                })
 
-    if any(word in prompt.lower() for word in coding_keywords):
-        return MODELS["coding"]
+                st.caption("✦ Powered by " + selected_model)
 
-    return MODELS["general"]
+                if voice_enabled:
+                    speak_text(answer)
+
+            except Exception as e:
+                st.error(f"AI connection error: {e}")
 
         # Keep only valid Groq message fields
         clean_messages = [
