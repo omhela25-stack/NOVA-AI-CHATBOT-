@@ -420,59 +420,192 @@ def transcribe_audio(audio_file):
 
 # ---------------- MICROPHONE INTERFACE ----------------
 
-st.markdown("### 🎙️ Talk to NOVA")
 
-audio_value = st.audio_input(
-    "Record your voice message",
-    key="nova_voice_input"
-)
+# ---------------- CHATGPT STYLE INPUT BAR ----------------
 
-if audio_value is not None:
-    if "processed_audio" not in st.session_state:
-        st.session_state.processed_audio = None
+st.markdown("""
+<style>
+div[data-testid="stTextInput"] input {
+    background: #172033;
+    color: white;
+    border: 1px solid #46577a;
+    border-radius: 18px;
+    min-height: 48px;
+}
 
-    audio_bytes = audio_value.getvalue()
+div[data-testid="stButton"] button {
+    min-height: 45px;
+    border-radius: 16px;
+    background: #6575ed;
+    color: white;
+    border: none;
+}
+</style>
+""", unsafe_allow_html=True)
 
-    import hashlib
-    audio_hash = hashlib.sha256(audio_bytes).hexdigest()
+col_text, col_mic, col_send = st.columns([7, 1, 1])
 
-    if audio_hash != st.session_state.processed_audio:
+with col_text:
+    typed_message = st.text_input(
+        "Message NOVA",
+        placeholder=f"Message NOVA, {user_name}...",
+        label_visibility="collapsed",
+        key="nova_typed_message"
+    )
 
-        with st.spinner("NOVA is listening..."):
+with col_mic:
+    audio = mic_recorder(
+        start_prompt="🎙️",
+        stop_prompt="⏹️",
+        just_once=True,
+        use_container_width=True,
+        format="wav",
+        key="nova_mic"
+    )
 
-            recognized_text = transcribe_audio(audio_value)
+with col_send:
+    send_clicked = st.button(
+        "➤",
+        use_container_width=True
+    )
 
-            if recognized_text:
+# ---------------- PROCESS VOICE INPUT ----------------
 
-                st.session_state.processed_audio = audio_hash
+prompt = None
 
-                st.success("Voice recognized!")
+if audio and audio.get("bytes"):
+    with st.spinner("NOVA is listening..."):
+        prompt = transcribe_audio(audio["bytes"])
 
-                st.write("**You said:**", recognized_text)
+    if prompt:
+        st.success(f"You said: {prompt}")
+
+# ---------------- PROCESS TEXT INPUT ----------------
+
+elif send_clicked and typed_message.strip():
+    prompt = typed_message.strip()
+
+# ---------------- SEND TO NOVA ----------------
+
+# ---------------- CHATGPT STYLE INPUT BAR ----------------
+
+st.markdown("""
+<style>
+div[data-testid="stTextInput"] input {
+    background: #172033;
+    color: white;
+    border: 1px solid #46577a;
+    border-radius: 18px;
+    min-height: 48px;
+}
+
+div[data-testid="stButton"] button {
+    min-height: 45px;
+    border-radius: 16px;
+    background: #6575ed;
+    color: white;
+    border: none;
+}
+</style>
+""", unsafe_allow_html=True)
+
+col_text, col_mic, col_send = st.columns([7, 1, 1])
+
+with col_text:
+    typed_message = st.text_input(
+        "Message NOVA",
+        placeholder=f"Message NOVA, {user_name}...",
+        label_visibility="collapsed",
+        key="nova_typed_message"
+    )
+
+with col_mic:
+    audio = mic_recorder(
+        start_prompt="🎙️",
+        stop_prompt="⏹️",
+        just_once=True,
+        use_container_width=True,
+        format="wav",
+        key="nova_mic"
+    )
+
+with col_send:
+    send_clicked = st.button(
+        "➤",
+        use_container_width=True
+    )
+
+# ---------------- PROCESS VOICE INPUT ----------------
+
+prompt = None
+
+if audio and audio.get("bytes"):
+    with st.spinner("NOVA is listening..."):
+        prompt = transcribe_audio(audio["bytes"])
+
+    if prompt:
+        st.success(f"You said: {prompt}")
+
+# ---------------- PROCESS TEXT INPUT ----------------
+
+elif send_clicked and typed_message.strip():
+    prompt = typed_message.strip()
+
+# ---------------- SEND TO NOVA ----------------
+
+if prompt:
+    st.session_state.messages.append({
+        "role": "user",
+        "content": prompt
+    })
+
+    selected_model = select_model(prompt)
+
+    with st.chat_message("assistant"):
+        with st.spinner("✦ NOVA is thinking..."):
+            try:
+                answer = get_ai_response(
+                    st.session_state.messages,
+                    selected_model
+                )
 
                 st.session_state.messages.append({
-                    "role": "user",
-                    "content": recognized_text
+                    "role": "assistant",
+                    "content": answer,
+                    "model": selected_model
                 })
 
-                selected_model = select_model(recognized_text)
+                st.rerun()
 
-                try:
-                    answer = get_ai_response(
-                        st.session_state.messages,
-                        selected_model
-                    )
+            except Exception as exc:
+                st.error(f"NOVA error: {exc}")
 
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": answer,
-                        "model": selected_model
-                    })
+if prompt:
+    st.session_state.messages.append({
+        "role": "user",
+        "content": prompt
+    })
 
-                    st.rerun()
+    selected_model = select_model(prompt)
 
-                except Exception as e:
-                    st.error(f"NOVA error: {e}")
+    with st.chat_message("assistant"):
+        with st.spinner("✦ NOVA is thinking..."):
+            try:
+                answer = get_ai_response(
+                    st.session_state.messages,
+                    selected_model
+                )
+
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": answer,
+                    "model": selected_model
+                })
+
+                st.rerun()
+
+            except Exception as exc:
+                st.error(f"NOVA error: {exc}")
 
 # ---------------- USER INPUT ----------------
 
