@@ -1,6 +1,8 @@
+import base64
 import hashlib
 import html
 import json
+from pathlib import Path
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -161,6 +163,20 @@ def get_ai_response(messages, model):
 
 # ---------------- CUSTOM UI ----------------
 
+# Keep the background image beside app.py in your GitHub repository.
+background_path = Path(__file__).parent / "nova_background.jpg"
+if background_path.exists():
+    background_b64 = base64.b64encode(background_path.read_bytes()).decode("utf-8")
+    background_image_css = (
+        "background: linear-gradient(rgba(5, 10, 22, .58), rgba(5, 10, 22, .72)), "
+        f'url("data:image/jpeg;base64,{background_b64}") center center / cover fixed no-repeat;'
+    )
+else:
+    background_image_css = (
+        "background: radial-gradient(ellipse at 10% 5%, #172b55 0%, transparent 40%), "
+        "radial-gradient(ellipse at 90% 90%, #32194d 0%, transparent 40%), #080d19;"
+    )
+
 st.markdown(
     """
     <style>
@@ -171,10 +187,7 @@ st.markdown(
     }
 
     .stApp {
-        background:
-            radial-gradient(ellipse at 10% 5%, #172b55 0%, transparent 40%),
-            radial-gradient(ellipse at 90% 90%, #32194d 0%, transparent 40%),
-            #080d19;
+        {background_image_css}
         color: #f1f5f9;
     }
 
@@ -261,7 +274,7 @@ st.markdown(
         background: transparent;
     }
     </style>
-    """,
+    """.replace("{background_image_css}", background_image_css),
     unsafe_allow_html=True,
 )
 
