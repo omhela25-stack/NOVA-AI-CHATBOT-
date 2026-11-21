@@ -2,7 +2,7 @@ import json
 import streamlit as st
 import streamlit.components.v1 as components
 from groq import Groq
-
+from streamlit_mic_recorder import mic_recorder
 
 # ---------------- PAGE CONFIGURATION ----------------
 
@@ -81,6 +81,19 @@ except Exception:
     )
     st.stop()
 
+
+def transcribe_audio(audio_bytes):
+    try:
+        result = client.audio.transcriptions.create(
+            file=("nova_voice.wav", audio_bytes),
+            model="whisper-large-v3-turbo",
+            response_format="text"
+        )
+        return str(result).strip()
+
+    except Exception as e:
+        st.error(f"Voice recognition failed: {e}")
+        return None
 
 
 # ---------------- MODEL SELECTION ----------------
