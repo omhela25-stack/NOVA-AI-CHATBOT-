@@ -394,6 +394,86 @@ for message_index, message in enumerate(st.session_state.messages):
             ):
                 speak_text(message["content"])
 
+# ---------------- VOICE INPUT MODULE ----------------
+
+def transcribe_audio(audio_file):
+    """
+    Convert recorded audio into text using Groq Whisper.
+    Supports multilingual speech.
+    """
+    try:
+        transcription = client.audio.transcriptions.create(
+            file=(
+                "nova_recording.wav",
+                audio_file.getvalue()
+            ),
+            model="whisper-large-v3-turbo",
+            response_format="text"
+        )
+
+        return str(transcription).strip()
+
+    except Exception as e:
+        st.error(f"Voice transcription error: {e}")
+        return None
+
+
+# ---------------- MICROPHONE INTERFACE ----------------
+
+st.markdown("### 🎙️ Talk to NOVA")
+
+audio_value = st.audio_input(
+    "Record your voice message",
+    key="nova_voice_input"
+)
+
+if audio_value is not None:
+    if "processed_audio" not in st.session_state:
+        st.session_state.processed_audio = None
+
+    audio_bytes = audio_value.getvalue()
+
+    import hashlib
+    audio_hash = hashlib.sha256(audio_bytes).hexdigest()
+
+    if audio_hash != st.session_state.processed_audio:
+
+        with st.spinner("NOVA is listening..."):
+
+            recognized_text = transcribe_audio(audio_value)
+
+            if recognized_text:
+
+                st.session_state.processed_audio = audio_hash
+
+                st.success("Voice recognized!")
+
+                st.write("**You said:**", recognized_text)
+
+                st.session_state.messages.append({
+                    "role": "user",
+                    "content": recognized_text
+                })
+
+                selected_model = select_model(recognized_text)
+
+                try:
+                    answer = get_ai_response(
+                        st.session_state.messages,
+                        selected_model
+                    )
+
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": answer,
+                        "model": selected_model
+                    })
+
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"NOVA error: {e}")
+
 # ---------------- USER INPUT ----------------
 
 prompt = st.chat_input(f"Message NOVA, {user_name}...")
